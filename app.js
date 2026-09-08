@@ -3,7 +3,6 @@
 // -----------------------------------------------------------------
 const INQUIRY_CONTACT = "학원 데스크(010-1234-5678 또는 mpro@math.com)";
 
-// 기본 시드 데이터
 const defaultData = {
   users: [
     { id: "student1", pw: "1234", name: "김학생", phone: "010-1111-2222", role: "student" },
@@ -16,29 +15,38 @@ const defaultData = {
     {
       id: "e1",
       classId: "c1",
-      type: "review", // review 또는 mock
+      type: "review",
       title: "1회차 복습테스트",
-      answers: ["1", "3", "2", "4", "5"]
+      questions: [
+        { num: 1, type: "mc", points: 20, answer: "1" },
+        { num: 2, type: "mc", points: 20, answer: "3" },
+        { num: 3, type: "mc", points: 20, answer: "2" },
+        { num: 4, type: "mc", points: 20, answer: "4" },
+        { num: 5, type: "sa", points: 20, answer: "5" }
+      ]
     },
     {
       id: "e2",
       classId: "c1",
       type: "mock",
       title: "9월 평가원 모의고사",
-      answers: ["3", "1", "4", "2", "25"]
+      questions: [
+        { num: 1, type: "mc", points: 20, answer: "3" },
+        { num: 2, type: "mc", points: 20, answer: "1" },
+        { num: 3, type: "mc", points: 20, answer: "4" },
+        { num: 4, type: "mc", points: 20, answer: "2" },
+        { num: 5, type: "sa", points: 20, answer: "25" }
+      ]
     }
   ],
   scores: [
-    // { studentId, examId, score, answers, date }
     { studentId: "student1", examId: "e1", score: 80, answers: ["1", "3", "2", "4", "1"], date: "2026-09-01" },
     { studentId: "student1", examId: "e2", score: 100, answers: ["3", "1", "4", "2", "25"], date: "2026-09-05" }
   ],
   memos: [
-    // { studentId, date, content }
     { studentId: "student1", date: "2026-09-02", content: "삼각함수 미분법 추가 과제 부여함." }
   ],
   supplements: [
-    // { studentId, datetime }
     { studentId: "student1", datetime: "2026-09-12T14:00" }
   ]
 };
@@ -52,14 +60,13 @@ function saveData(data) {
   localStorage.setItem("mpro_academy_data", JSON.stringify(data));
 }
 
-// 로그인 세션 상태 유지
 let currentUser = JSON.parse(localStorage.getItem("mpro_current_user")) || null;
 let selectedRole = "student";
 let selectedTeacherClassId = null;
 let selectedTeacherStudentId = null;
 
 // -----------------------------------------------------------------
-// 초기화 실행
+// 초기화
 // -----------------------------------------------------------------
 document.addEventListener("DOMContentLoaded", () => {
   if (!localStorage.getItem("mpro_academy_data")) {
@@ -74,7 +81,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // -----------------------------------------------------------------
-// 인증 & 로그인 관동
+// 인증 & 로그인
 // -----------------------------------------------------------------
 function showAuthScreen() {
   document.getElementById("auth-screen").classList.remove("hidden");
@@ -124,7 +131,7 @@ function handleLogout() {
 }
 
 // -----------------------------------------------------------------
-// 메인 앱 화면 제어
+// 메인 앱 제어
 // -----------------------------------------------------------------
 function showMainApp() {
   document.getElementById("auth-screen").classList.add("hidden");
@@ -149,7 +156,7 @@ function setupNavbar() {
 
   const items = currentUser.role === "student"
     ? [ { id: "class", text: "수업" }, { id: "omr", text: "OMR채점하기" }, { id: "mypage", text: "마이페이지" } ]
-    : [ { id: "class", text: "수업" }, { id: "student", text: "학생" }, { id: "accounts", text: "계정관리" }, { id: "mypage", text: "마이페이지" } ];
+    : [ { id: "class", text: "수업" }, { id: "exam-setup", text: "시험지 설정" }, { id: "student", text: "학생" }, { id: "accounts", text: "계정관리" }, { id: "mypage", text: "마이페이지" } ];
 
   items.forEach((item, idx) => {
     const el = document.createElement("div");
@@ -169,10 +176,11 @@ function switchTab(role, tabId, navEl) {
   document.getElementById(`${role}-tab-${tabId}`).classList.remove("hidden");
 
   if (tabId === "mypage") loadMyPage();
+  if (tabId === "exam-setup") renderExamSetupView();
 }
 
 // -----------------------------------------------------------------
-// [학생 페이지] 기능 구현
+// [학생 페이지]
 // -----------------------------------------------------------------
 function initStudentView() {
   const data = getData();
@@ -199,7 +207,6 @@ function renderStudentClassData() {
   const data = getData();
   const classId = document.getElementById("student-class-select").value;
 
-  // 1. 복습테스트 & 모의고사
   const reviewContainer = document.getElementById("student-review-results");
   const mockContainer = document.getElementById("student-mock-results");
   reviewContainer.innerHTML = "";
@@ -226,7 +233,6 @@ function renderStudentClassData() {
   if (reviewContainer.innerHTML === "") reviewContainer.innerHTML = "<p class='subtitle'>결과가 없습니다.</p>";
   if (mockContainer.innerHTML === "") mockContainer.innerHTML = "<p class='subtitle'>결과가 없습니다.</p>";
 
-  // 2. 보강 일정
   const suppInfo = document.getElementById("student-supplement-info");
   const supp = data.supplements.find(s => s.studentId === currentUser.id);
   if (supp && supp.datetime) {
@@ -236,7 +242,6 @@ function renderStudentClassData() {
     suppInfo.innerHTML = "<p>보강이 없습니다.</p>";
   }
 
-  // 3. 기타 사항 (선생님 메모)
   const memoContainer = document.getElementById("student-memos");
   memoContainer.innerHTML = "";
   const myMemos = data.memos.filter(m => m.studentId === currentUser.id);
@@ -276,7 +281,7 @@ function submitSupplementRequest() {
   saveData(data);
   closeModal();
   renderStudentClassData();
-  alert("보강 일정이 추가/요청되었습니다.");
+  alert("보강 일정이 추가되었습니다.");
 }
 
 function openScoreReport(examId) {
@@ -286,14 +291,17 @@ function openScoreReport(examId) {
 
   if (!scoreRecord) return;
 
-  let tableRows = exam.answers.map((ans, i) => {
+  let totalMaxScore = 0;
+  let tableRows = exam.questions.map((q, i) => {
+    totalMaxScore += (q.points || 0);
     const userAns = scoreRecord.answers[i] || "-";
-    const isCorrect = userAns.toString().trim() === ans.toString().trim();
+    const isCorrect = userAns.toString().trim() === q.answer.toString().trim();
     return `
       <tr>
-        <td>${i + 1}번</td>
+        <td>${i + 1}번 (${q.type === 'mc' ? '객관식' : '단답형'})</td>
+        <td>${q.points || 0}점</td>
         <td>${userAns}</td>
-        <td>${ans}</td>
+        <td>${q.answer}</td>
         <td class="${isCorrect ? 'correct' : 'incorrect'}">${isCorrect ? 'O' : 'X'}</td>
       </tr>
     `;
@@ -303,24 +311,28 @@ function openScoreReport(examId) {
     <h2>📄 성적표</h2>
     <p><strong>시험명:</strong> ${exam.title}</p>
     <p><strong>응시 날짜:</strong> ${scoreRecord.date}</p>
-    <p><strong>총점:</strong> ${scoreRecord.score}점</p>
-    <table>
-      <thead>
-        <tr><th>문항</th><th>제출 답안</th><th>정답</th><th>정오</th></tr>
-      </thead>
-      <tbody>${tableRows}</tbody>
-    </table>
+    <p><strong>취득 점수:</strong> ${scoreRecord.score}점 / ${totalMaxScore}점</p>
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr><th>문항</th><th>배점</th><th>제출 답안</th><th>정답</th><th>정오</th></tr>
+        </thead>
+        <tbody>${tableRows}</tbody>
+      </table>
+    </div>
   `;
   showModal(content);
 }
 
-// OMR 채점
 function setupStudentOmrExams() {
   const data = getData();
   const selectEl = document.getElementById("omr-exam-select");
   selectEl.innerHTML = '<option value="">-- 시험을 선택하세요 --</option>';
 
-  data.exams.forEach(exam => {
+  const myClasses = data.classes.filter(c => c.studentIds.includes(currentUser.id)).map(c => c.id);
+  const availableExams = data.exams.filter(e => myClasses.includes(e.classId));
+
+  availableExams.forEach(exam => {
     const opt = document.createElement("option");
     opt.value = exam.id;
     opt.innerText = `[${exam.type === 'review' ? '복습' : '모의'}] ${exam.title}`;
@@ -338,40 +350,63 @@ function loadOmrForm() {
   const data = getData();
   const exam = data.exams.find(e => e.id === examId);
 
-  let inputsHtml = "<h3>정답 입력</h3><div style='display:grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap:10px; margin: 15px 0;'>";
+  let html = "<h3 style='margin:15px 0 10px 0;'>답안 작성</h3>";
 
-  exam.answers.forEach((_, idx) => {
-    inputsHtml += `
-      <div>
-        <label>${idx + 1}번:</label>
-        <input type="text" class="omr-ans-input" data-idx="${idx}" style="width:100%; padding:5px;" />
-      </div>
-    `;
+  exam.questions.forEach((q, idx) => {
+    if (q.type === 'mc') {
+      html += `
+        <div class="omr-question-card">
+          <div><strong>${idx + 1}번 (객관식 - ${q.points}점)</strong></div>
+          <div class="omr-radio-group">
+            ${[1, 2, 3, 4, 5].map(num => `
+              <label>
+                <input type="radio" name="omr_q_${idx}" value="${num}" />
+                <span class="omr-radio-option">${num}</span>
+              </label>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    } else {
+      html += `
+        <div class="omr-question-card">
+          <div><strong>${idx + 1}번 (단답형 - ${q.points}점)</strong></div>
+          <div style="margin-top:8px;">
+            <input type="text" class="omr-sa-input" data-idx="${idx}" placeholder="정답 입력" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;" />
+          </div>
+        </div>
+      `;
+    }
   });
-  inputsHtml += "</div><button class='btn btn-block' onclick='submitOmr(\"" + examId + "\")'>채점하기</button>";
-  container.innerHTML = inputsHtml;
+
+  html += `<button class="btn btn-block" style="margin-top:15px;" onclick="submitOmr('${examId}')">채점하기</button>`;
+  container.innerHTML = html;
 }
 
 function submitOmr(examId) {
   const data = getData();
   const exam = data.exams.find(e => e.id === examId);
-  const inputs = document.querySelectorAll(".omr-ans-input");
-  
-  let userAnswers = [];
-  let correctCount = 0;
 
-  inputs.forEach((input, idx) => {
-    const val = input.value.trim();
-    userAnswers.push(val);
-    if (val === exam.answers[idx].trim()) {
-      correctCount++;
+  let userAnswers = [];
+  let calculatedScore = 0;
+
+  exam.questions.forEach((q, idx) => {
+    let ansVal = "";
+    if (q.type === 'mc') {
+      const checked = document.querySelector(`input[name="omr_q_${idx}"]:checked`);
+      if (checked) ansVal = checked.value;
+    } else {
+      const saInput = document.querySelector(`.omr-sa-input[data-idx="${idx}"]`);
+      if (saInput) ansVal = saInput.value.trim();
+    }
+
+    userAnswers.push(ansVal);
+    if (ansVal.toString().trim() === q.answer.toString().trim()) {
+      calculatedScore += parseInt(q.points || 0);
     }
   });
 
-  const calculatedScore = Math.round((correctCount / exam.answers.length) * 100);
   const today = new Date().toISOString().split("T")[0];
-
-  // 기존 점수 업데이트 또는 신규 저장
   const existingIdx = data.scores.findIndex(s => s.studentId === currentUser.id && s.examId === examId);
   const scoreObj = { studentId: currentUser.id, examId, score: calculatedScore, answers: userAnswers, date: today };
 
@@ -387,12 +422,13 @@ function submitOmr(examId) {
 }
 
 // -----------------------------------------------------------------
-// [선생님 페이지] 기능 구현
+// [선생님 페이지]
 // -----------------------------------------------------------------
 function initTeacherView() {
   renderTeacherClassList();
   renderTeacherStudentList();
   renderAccountList();
+  renderExamSetupView();
 }
 
 // 수업 관리
@@ -422,6 +458,7 @@ function addClass() {
 
   document.getElementById("new-class-name").value = "";
   renderTeacherClassList();
+  renderExamSetupView();
 }
 
 function selectTeacherClass(classId) {
@@ -434,7 +471,6 @@ function selectTeacherClass(classId) {
   detailBox.classList.remove("hidden");
   document.getElementById("selected-class-title").innerText = `수업 관리: ${cls.name}`;
 
-  // 학생 추가 드롭다운
   const studentSelect = document.getElementById("add-student-to-class-select");
   studentSelect.innerHTML = "";
   data.users.filter(u => u.role === "student").forEach(s => {
@@ -444,7 +480,6 @@ function selectTeacherClass(classId) {
     studentSelect.appendChild(opt);
   });
 
-  // 등록된 학생 목록
   const chipsContainer = document.getElementById("class-students-list");
   chipsContainer.innerHTML = "";
   cls.studentIds.forEach(sId => {
@@ -467,6 +502,7 @@ function deleteSelectedClass() {
   selectedTeacherClassId = null;
   document.getElementById("teacher-class-detail").classList.add("hidden");
   renderTeacherClassList();
+  renderExamSetupView();
 }
 
 function addStudentToClass() {
@@ -482,55 +518,165 @@ function addStudentToClass() {
   }
 }
 
-function generateAnswerKeyInputs() {
-  const objCount = parseInt(document.getElementById("exam-obj-count").value) || 0;
-  const subjCount = parseInt(document.getElementById("exam-subj-count").value) || 0;
-  const container = document.getElementById("answer-key-setup-container");
+// -----------------------------------------------------------------
+// [선생님 - 시험지 설정 (신설 메뉴)]
+// -----------------------------------------------------------------
+function renderExamSetupView() {
+  const data = getData();
 
-  let html = "<h4>정답 세팅</h4><div style='display:grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap:8px; margin: 10px 0;'>";
-  
-  let total = objCount + subjCount;
-  for (let i = 1; i <= total; i++) {
-    const typeLabel = i <= objCount ? "객관식" : "단답형";
+  // 1. 수업 선택 옵션 업데이트
+  const classSelect = document.getElementById("exam-class-select");
+  if (classSelect) {
+    classSelect.innerHTML = "";
+    data.classes.forEach(c => {
+      const opt = document.createElement("option");
+      opt.value = c.id;
+      opt.innerText = c.name;
+      classSelect.appendChild(opt);
+    });
+  }
+
+  // 2. 등록된 시험지 목록 표출 및 삭제
+  const listTable = document.getElementById("exam-list-table");
+  if (!listTable) return;
+
+  let html = `
+    <table>
+      <thead>
+        <tr>
+          <th>유형</th>
+          <th>시험지 이름</th>
+          <th>수업</th>
+          <th>문항 수</th>
+          <th>총점</th>
+          <th>관리</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  if (data.exams.length === 0) {
+    html += `<tr><td colspan="6">등록된 시험지가 없습니다.</td></tr>`;
+  } else {
+    data.exams.forEach(exam => {
+      const cls = data.classes.find(c => c.id === exam.classId);
+      const totalPoints = exam.questions.reduce((sum, q) => sum + (parseInt(q.points) || 0), 0);
+      html += `
+        <tr>
+          <td>${exam.type === 'review' ? '복습' : '모의'}</td>
+          <td><strong>${exam.title}</strong></td>
+          <td>${cls ? cls.name : '미지정'}</td>
+          <td>${exam.questions.length}문항</td>
+          <td>${totalPoints}점</td>
+          <td><button class="btn btn-danger btn-sm" onclick="deleteExam('${exam.id}')">삭제</button></td>
+        </tr>
+      `;
+    });
+  }
+
+  html += `</tbody></table>`;
+  listTable.innerHTML = html;
+}
+
+function deleteExam(examId) {
+  if (!confirm("정말 이 시험지를 삭제하시겠습니까? 관련 성적 데이터도 함께 삭제됩니다.")) return;
+
+  const data = getData();
+  data.exams = data.exams.filter(e => e.id !== examId);
+  data.scores = data.scores.filter(s => s.examId !== examId);
+
+  saveData(data);
+  renderExamSetupView();
+  alert("시험지가 삭제되었습니다.");
+}
+
+function generateQuestionSetupForm() {
+  const mcCount = parseInt(document.getElementById("exam-mc-count").value) || 0;
+  const saCount = parseInt(document.getElementById("exam-sa-count").value) || 0;
+  const container = document.getElementById("question-setup-container");
+
+  if (mcCount + saCount <= 0) return alert("문항 수를 입력해 주세요.");
+
+  let html = "<h4>문항별 세부 설정 (배점 및 정답)</h4><div style='margin:10px 0;'>";
+
+  let qNum = 1;
+  // 객관식 문항 생성
+  for (let i = 0; i < mcCount; i++) {
     html += `
-      <div>
-        <label style='font-size:12px;'>${i}번(${typeLabel}):</label>
-        <input type="text" class="teacher-ans-key" style="width:100%; padding:4px;" />
+      <div class="omr-question-card" style="margin-bottom:8px;">
+        <div class="form-inline">
+          <strong>${qNum}번 (객관식)</strong>
+          <label style="font-size:12px;">배점:</label>
+          <input type="number" class="q-points" data-qnum="${qNum}" data-type="mc" value="20" style="width:60px;" />
+          <label style="font-size:12px;">정답(1~5):</label>
+          <input type="number" class="q-answer" data-qnum="${qNum}" min="1" max="5" value="1" style="width:60px;" />
+        </div>
       </div>
     `;
+    qNum++;
   }
-  html += "</div><button class='btn btn-sm' onclick='saveExamKey()'>시험 및 정답 저장</button>";
+
+  // 단답형 문항 생성
+  for (let i = 0; i < saCount; i++) {
+    html += `
+      <div class="omr-question-card" style="margin-bottom:8px;">
+        <div class="form-inline">
+          <strong>${qNum}번 (단답형)</strong>
+          <label style="font-size:12px;">배점:</label>
+          <input type="number" class="q-points" data-qnum="${qNum}" data-type="sa" value="20" style="width:60px;" />
+          <label style="font-size:12px;">정답:</label>
+          <input type="text" class="q-answer" data-qnum="${qNum}" placeholder="정답" style="width:100px;" />
+        </div>
+      </div>
+    `;
+    qNum++;
+  }
+
+  html += "</div><button class='btn btn-block' onclick='saveExamTemplate()'>시험지 저장하기</button>";
   container.innerHTML = html;
 }
 
-function saveExamKey() {
+function saveExamTemplate() {
   const title = document.getElementById("exam-title-input").value.trim();
   const type = document.getElementById("exam-type-select").value;
-  if (!title) return alert("시험 이름을 입력해 주세요.");
-  if (!selectedTeacherClassId) return alert("수업을 먼저 선택해 주세요.");
+  const classId = document.getElementById("exam-class-select").value;
 
-  const keyInputs = document.querySelectorAll(".teacher-ans-key");
-  let answers = [];
-  keyInputs.forEach(input => answers.push(input.value.trim()));
+  if (!title) return alert("시험 이름을 입력하세요.");
+  if (!classId) return alert("수업을 선택하세요.");
+
+  const pointInputs = document.querySelectorAll(".q-points");
+  const answerInputs = document.querySelectorAll(".q-answer");
+
+  let questions = [];
+  pointInputs.forEach((pInput, idx) => {
+    const qNum = pInput.getAttribute("data-qnum");
+    const qType = pInput.getAttribute("data-type");
+    const points = parseInt(pInput.value) || 0;
+    const answer = answerInputs[idx].value.trim();
+
+    questions.push({ num: parseInt(qNum), type: qType, points, answer });
+  });
 
   const data = getData();
   const newExam = {
     id: "e_" + Date.now(),
-    classId: selectedTeacherClassId,
+    classId,
     type,
     title,
-    answers
+    questions
   };
 
   data.exams.push(newExam);
   saveData(data);
-  alert("시험이 저장되었습니다.");
-  document.getElementById("answer-key-setup-container").innerHTML = "";
+
+  alert("시험지 양식이 성공적으로 저장되었습니다!");
   document.getElementById("exam-title-input").value = "";
+  document.getElementById("question-setup-container").innerHTML = "";
+  renderExamSetupView();
   setupStudentOmrExams();
 }
 
-// 학생 개별 관리
+// 학생 개별 성적 관리
 function renderTeacherStudentList() {
   const data = getData();
   const filter = document.getElementById("student-search-input").value.toLowerCase();
@@ -551,11 +697,9 @@ function openStudentDetailFromTeacher(studentId) {
   const data = getData();
   const student = data.users.find(u => u.id === studentId);
 
-  // 탭 전환 효과 (선생님 화면 상의 학생 개별페이지)
   document.getElementById("teacher-student-detail").classList.remove("hidden");
   document.getElementById("selected-student-title").innerText = `학생 정보: ${student.name} (${student.id})`;
 
-  // 성적 표출 및 개별 수정 기능
   const scoresContainer = document.getElementById("teacher-student-scores");
   scoresContainer.innerHTML = "";
 
@@ -567,19 +711,17 @@ function openStudentDetailFromTeacher(studentId) {
     div.className = "form-inline";
     div.style.marginBottom = "8px";
     div.innerHTML = `
-      <span style='width:150px;'>[${exam.type === 'review' ? '복습' : '모의'}] ${exam.title}:</span>
-      <input type="number" id="score-input-${exam.id}" value="${scoreVal}" placeholder="점수" style="width:80px;" />
+      <span style='width:140px; font-size:13px;'>[${exam.type === 'review' ? '복습' : '모의'}] ${exam.title}:</span>
+      <input type="number" id="score-input-${exam.id}" value="${scoreVal}" placeholder="점수" style="width:70px;" />
       <button class="btn btn-sm" onclick="saveTeacherStudentScore('${exam.id}')">저장</button>
     `;
     scoresContainer.appendChild(div);
   });
 
-  // 보강 시간
   const supp = data.supplements.find(s => s.studentId === studentId);
   document.getElementById("teacher-supplement-datetime").value = supp ? supp.datetime : "";
   document.getElementById("current-supplement-display").innerText = supp ? `현재 보강: ${new Date(supp.datetime).toLocaleString('ko-KR')}` : "보강 없음";
 
-  // 메모 목록
   renderTeacherStudentMemos();
 }
 
@@ -649,7 +791,7 @@ function renderTeacherStudentMemos() {
   memos.forEach(m => {
     const div = document.createElement("div");
     div.className = "list-item";
-    div.innerHTML = `<span>${m.content}</span> <small>${m.date}</small>`;
+    div.innerHTML = `<span>${m.content}</span> <small style='color:#888;'>${m.date}</small>`;
     container.appendChild(div);
   });
 }
@@ -706,7 +848,7 @@ function deleteAccount(userId) {
 }
 
 // -----------------------------------------------------------------
-// 마이페이지 공통
+// 마이페이지
 // -----------------------------------------------------------------
 function loadMyPage() {
   if (currentUser.role === "student") {
@@ -739,13 +881,11 @@ function updateMyPage(e) {
     currentUser = data.users[userIdx];
     saveData(data);
     localStorage.setItem("mpro_current_user", JSON.stringify(currentUser));
-    alert("내 정보가 성공적으로 수정되었습니다.");
+    alert("내 정보가 수정되었습니다.");
   }
 }
 
-// -----------------------------------------------------------------
-// 유틸리티 (모달)
-// -----------------------------------------------------------------
+// 유틸리티
 function showModal(htmlContent) {
   document.getElementById("modal-content").innerHTML = htmlContent;
   document.getElementById("modal-backdrop").classList.remove("hidden");
