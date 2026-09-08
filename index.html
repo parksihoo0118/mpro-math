@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>엠프로 수학학원</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- 1. 시작 및 로그인 화면 -->
+  <div id="auth-screen" class="screen active">
+    <div class="auth-box">
+      <h1>엠프로 수학학원</h1>
+      <div id="role-select-view">
+        <p class="subtitle">접속할 유형을 선택해 주세요</p>
+        <div class="btn-group">
+          <button class="btn btn-primary" onclick="showLoginForm('student')">1. 학생</button>
+          <button class="btn btn-secondary" onclick="showLoginForm('teacher')">2. 선생님</button>
+        </div>
+      </div>
+
+      <div id="login-form-view" class="hidden">
+        <h2 id="login-role-title">로그인</h2>
+        <form id="login-form" onsubmit="handleLogin(event)">
+          <div class="form-group">
+            <input type="text" id="login-id" placeholder="아이디" required />
+          </div>
+          <div class="form-group">
+            <input type="password" id="login-pw" placeholder="비밀번호" required />
+          </div>
+          <button type="submit" class="btn btn-block">로그인</button>
+        </form>
+        <div class="auth-links">
+          <span class="forgot-link" onclick="forgotPasswordInfo()">아이디 및 비밀번호를 잊어버리셨나요?</span>
+        </div>
+        <button class="btn-text" onclick="backToRoleSelect()">← 뒤로 가기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 메인 애플리케이션 화면 -->
+  <div id="app-screen" class="screen hidden">
+    <!-- 상단 네비게이션 바 -->
+    <header class="navbar">
+      <div class="nav-brand">엠프로 수학학원</div>
+      <nav id="nav-menu" class="nav-menu"></nav>
+      <button class="btn-logout" onclick="handleLogout()">로그아웃</button>
+    </header>
+
+    <!-- 메인 컨텐츠 영역 -->
+    <main class="content-container">
+      <!-- 학생 메인 화면 -->
+      <div id="student-view" class="view-section hidden">
+        <!-- 탭 1: 수업 -->
+        <div id="student-tab-class" class="tab-content active">
+          <div class="class-header card">
+            <label for="student-class-select"><strong>내 반 선택:</strong></label>
+            <select id="student-class-select" onchange="renderStudentClassData()"></select>
+          </div>
+
+          <div class="dashboard-grid">
+            <div class="card">
+              <h3>📝 복습테스트 결과</h3>
+              <div id="student-review-results" class="list-container"></div>
+            </div>
+
+            <div class="card">
+              <h3>📊 모의고사 결과</h3>
+              <div id="student-mock-results" class="list-container"></div>
+            </div>
+
+            <div class="card">
+              <h3>📅 보강 일정</h3>
+              <div id="student-supplement-info"></div>
+              <button class="btn btn-sm" onclick="openSupplementModal()" style="margin-top:10px;">보강 일정 추가 요청</button>
+            </div>
+
+            <div class="card">
+              <h3>📌 기타 사항 (선생님 메모)</h3>
+              <div id="student-memos" class="list-container"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 탭 2: OMR 채점하기 -->
+        <div id="student-tab-omr" class="tab-content hidden">
+          <div class="card">
+            <h2>✍️ OMR 채점하기</h2>
+            <div class="form-group">
+              <label for="omr-exam-select">시험 선택/검색:</label>
+              <select id="omr-exam-select" onchange="loadOmrForm()">
+                <option value="">-- 시험을 선택하세요 --</option>
+              </select>
+            </div>
+            <div id="omr-inputs-container"></div>
+          </div>
+        </div>
+
+        <!-- 탭 3: 마이페이지 -->
+        <div id="student-tab-mypage" class="tab-content hidden">
+          <div class="card mypage-card">
+            <h2>👤 마이페이지</h2>
+            <form onsubmit="updateMyPage(event)">
+              <div class="form-group">
+                <label>이름</label>
+                <input type="text" id="mypage-name" required />
+              </div>
+              <div class="form-group">
+                <label>전화번호</label>
+                <input type="tel" id="mypage-phone" required />
+              </div>
+              <div class="form-group">
+                <label>새 비밀번호</label>
+                <input type="password" id="mypage-pw" placeholder="변경할 비밀번호 입력" required />
+              </div>
+              <button type="submit" class="btn">정보 수정하기</button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- 선생님 메인 화면 -->
+      <div id="teacher-view" class="view-section hidden">
+        <!-- 탭 1: 수업 -->
+        <div id="teacher-tab-class" class="tab-content active">
+          <div class="card">
+            <h2>🏫 수업 관리</h2>
+            <div class="form-inline">
+              <input type="text" id="new-class-name" placeholder="새 수업 이름 입력 (예: 고3 미적분반)" />
+              <button class="btn" onclick="addClass()">수업 추가</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2>🔍 수업 선택 및 세부 관리</h2>
+            <input type="text" id="class-search-input" placeholder="수업 이름 검색..." oninput="renderTeacherClassList()" />
+            <div id="teacher-class-list" class="tag-list" style="margin-top:10px;"></div>
+          </div>
+
+          <div id="teacher-class-detail" class="card hidden">
+            <h2 id="selected-class-title">선택된 수업</h2>
+            <button class="btn btn-danger btn-sm" onclick="deleteSelectedClass()" style="float:right;">수업 삭제</button>
+            
+            <hr />
+            <h3>👨‍🎓 수강 학생 관리</h3>
+            <div class="form-inline">
+              <select id="add-student-to-class-select"></select>
+              <button class="btn btn-sm" onclick="addStudentToClass()">수업에 학생 추가</button>
+            </div>
+            <div id="class-students-list" class="student-chips" style="margin-top:10px;"></div>
+
+            <hr style="margin-top:20px;" />
+            <h3>📝 시험 추가 및 정답 세팅</h3>
+            <div class="form-group">
+              <label>시험 종류:</label>
+              <select id="exam-type-select">
+                <option value="review">복습테스트</option>
+                <option value="mock">모의고사</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <input type="text" id="exam-title-input" placeholder="시험 이름 (예: 9월 모의고사)" />
+            </div>
+            <div class="form-inline">
+              <input type="number" id="exam-obj-count" placeholder="객관식 문항 수" min="0" value="5" />
+              <input type="number" id="exam-subj-count" placeholder="단답형 문항 수" min="0" value="2" />
+              <button class="btn btn-sm" onclick="generateAnswerKeyInputs()">문항 양식 생성</button>
+            </div>
+            <div id="answer-key-setup-container" style="margin-top:15px;"></div>
+          </div>
+        </div>
+
+        <!-- 탭 2: 학생 -->
+        <div id="teacher-tab-student" class="tab-content hidden">
+          <div class="card">
+            <h2>👨‍🎓 학생 개별 관리</h2>
+            <input type="text" id="student-search-input" placeholder="학생 이름 검색..." oninput="renderTeacherStudentList()" />
+            <div id="teacher-student-list" class="student-grid" style="margin-top:15px;"></div>
+          </div>
+
+          <div id="teacher-student-detail" class="card hidden">
+            <h2 id="selected-student-title">학생 성적 및 상세 관리</h2>
+            <button class="btn-text" onclick="closeStudentDetail()">← 목록으로 돌아가기</button>
+
+            <div class="dashboard-grid" style="margin-top:15px;">
+              <div class="card">
+                <h3>복습테스트/모의고사 성적 설정</h3>
+                <div id="teacher-student-scores"></div>
+              </div>
+
+              <div class="card">
+                <h3>📅 보강 시간 설정</h3>
+                <div class="form-group">
+                  <input type="datetime-local" id="teacher-supplement-datetime" />
+                  <button class="btn btn-sm" onclick="saveSupplementTime()" style="margin-top:5px;">보강 설정 저장</button>
+                </div>
+                <div id="current-supplement-display"></div>
+              </div>
+
+              <div class="card">
+                <h3>📌 선생님 메모 작성</h3>
+                <div class="form-group">
+                  <textarea id="teacher-memo-input" placeholder="학생에 대한 메모를 입력하세요..."></textarea>
+                  <button class="btn btn-sm" onclick="addTeacherMemo()">메모 추가</button>
+                </div>
+                <div id="teacher-student-memos" class="list-container"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 탭 3: 계정관리 -->
+        <div id="teacher-tab-accounts" class="tab-content hidden">
+          <div class="card">
+            <h2>🔑 계정 관리</h2>
+            <h3>새 계정 추가</h3>
+            <form onsubmit="handleCreateAccount(event)" class="form-inline">
+              <select id="acc-role">
+                <option value="student">학생</option>
+                <option value="teacher">선생님</option>
+              </select>
+              <input type="text" id="acc-id" placeholder="아이디" required />
+              <input type="password" id="acc-pw" placeholder="비밀번호" required />
+              <input type="text" id="acc-name" placeholder="이름" required />
+              <input type="tel" id="acc-phone" placeholder="전화번호" required />
+              <button type="submit" class="btn">계정 생성</button>
+            </form>
+
+            <hr style="margin:20px 0;" />
+            <h3>전체 계정 목록</h3>
+            <div id="account-list-table"></div>
+          </div>
+        </div>
+
+        <!-- 탭 4: 마이페이지 -->
+        <div id="teacher-tab-mypage" class="tab-content hidden">
+          <div class="card mypage-card">
+            <h2>👤 선생님 마이페이지</h2>
+            <form onsubmit="updateMyPage(event)">
+              <div class="form-group">
+                <label>이름</label>
+                <input type="text" id="teacher-mypage-name" required />
+              </div>
+              <div class="form-group">
+                <label>전화번호</label>
+                <input type="tel" id="teacher-mypage-phone" required />
+              </div>
+              <div class="form-group">
+                <label>새 비밀번호</label>
+                <input type="password" id="teacher-mypage-pw" placeholder="변경할 비밀번호 입력" required />
+              </div>
+              <button type="submit" class="btn">정보 수정하기</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- 모달 (성적표 및 팝업 창) -->
+  <div id="modal-backdrop" class="modal-backdrop hidden">
+    <div class="modal">
+      <div id="modal-content"></div>
+      <button class="btn btn-secondary" onclick="closeModal()" style="margin-top:15px;">닫기</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
